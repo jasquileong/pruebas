@@ -2,9 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Company } from './company.entity';
+import OpenAI from 'openai';
 
 @Injectable()
 export class AppService {
+  private openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
   constructor(
     @InjectRepository(Company)
     private companyRepo: Repository<Company>,
@@ -21,5 +24,19 @@ export class AppService {
       await this.companyRepo.save(company);
     }
     return company;
+  }
+
+  async chat(messages: { role: string; content: string }[]) {
+    const completion = await this.openai.chat.completions.create({
+      model: 'gpt-5',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an expert assistant who provides helpful travel tips.',
+        },
+        ...messages,
+      ],
+    });
+    return { reply: completion.choices[0].message.content };
   }
 }
